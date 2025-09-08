@@ -16,17 +16,65 @@
 <!-- Open Graph / Twitter preview -->
 <meta property="og:title" content="Rediscover ATK SPD/DPS Calculator">
 <meta property="og:description" content="A clean mobile-friendly calculator for Evil Hunter Tycoon: Attack Speed & DPS.">
-<meta property="og:image" content="https://rediscovergames.github.io/atkspd-calc/assets/preview.jpg">
-<meta property="og:url" content="https://rediscovergames.github.io/atkspd-calc/">
+<meta property="og:image" content="assets/preview.jpg">
+<meta property="og:url" content="./">
 <meta property="og:type" content="website">
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Rediscover ATK SPD/DPS Calculator">
 <meta name="twitter:description" content="Evil Hunter Tycoon attack speed & DPS calculator. Try it on mobile!">
-<meta name="twitter:image" content="https://rediscovergames.github.io/atkspd-calc/assets/preview.jpg">
+<meta name="twitter:image" content="assets/preview.jpg">
 
 <style>
-/* CSS omitted here for brevity - same as full version we finalized earlier */
+:root{
+  --bg:#f7f8fb;--card:rgba(255,255,255,0.9);--border:rgba(0,0,0,0.06);
+  --text:#1c2431;--muted:#6b7280;--accent:#5865f2;--accent-2:#7c3aed;
+  --good:#16a34a;--warn:#f59e0b;--bar-bg:#eef2ff;--shadow:0 10px 30px rgba(18,24,40,0.08);
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#0b1020;--card:rgba(18,22,36,0.85);--border:rgba(255,255,255,0.08);
+  --text:#eef2ff;--muted:#9aa3b2;--accent:#7c9bff;--accent-2:#a78bfa;
+  --good:#22c55e;--warn:#fbbf24;--bar-bg:#1f2a44;--shadow:0 12px 34px rgba(0,0,0,0.45);}
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:ui-sans-serif,-apple-system,system-ui; color:var(--text);background:
+  radial-gradient(1200px 600px at 10% -10%, rgba(124,58,237,0.12), transparent 60%),
+  radial-gradient(900px 600px at 110% -20%, rgba(88,101,242,0.12), transparent 50%),
+  var(--bg);}
+header{position:sticky;top:0;background:linear-gradient(90deg,rgba(124,58,237,.8),rgba(88,101,242,.8));
+color:#fff;padding:14px 18px;box-shadow:0 6px 20px rgba(0,0,0,.12);}
+header h1{margin:0;font-size:18px;}
+main{max-width:920px;margin:18px auto;padding:0 14px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin:16px 0;box-shadow:var(--shadow);backdrop-filter:blur(6px)}
+h2{font-size:16px;margin:0 0 10px 0;color:var(--muted);}
+.section{display:grid;grid-template-columns:240px 1fr;gap:12px;align-items:center;}
+.row{display:contents;}
+label{font-weight:600;color:var(--muted);}
+
+/* Inverse boxes for all inputs/results */
+select,input[type="number"],input[readonly]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);
+  background:var(--text);color:var(--bg);font-weight:600;}
+.pct{position:relative}.pct input{padding-right:34px}.suffix{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--bg);opacity:.85;font-weight:700;}
+
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{appearance:none;border:1px solid var(--border);background:#fff;color:#111;border-radius:12px;padding:10px 12px;font-weight:600;cursor:pointer;min-width:64px}
+@media(prefers-color-scheme:dark){.seg button{background:#141826;color:#e6e9ff}}
+.seg button.is-active{border-color:var(--accent);outline:2px solid rgba(88,101,242,0.25)}
+
+.bar{height:16px;background:var(--bar-bg);border-radius:999px;overflow:hidden}
+.bar>div{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .25s}
+.bar.good>div{background:linear-gradient(90deg,var(--good),#16a34a)}
+.bar.warn>div{background:linear-gradient(90deg,var(--warn),#d97706)}
+.muted{color:var(--muted);font-size:.92rem}
+
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{border-radius:14px;padding:14px;border:1px solid var(--border);background:rgba(255,255,255,.06)}
+.stat label{color:var(--muted);font-size:.9rem;margin-bottom:6px;display:block}
+.stat .value input{font-size:22px;padding:14px}
+
+.hidden{display:none!important}
+footer{position:fixed;bottom:0;left:0;width:100%;text-align:center;background:rgba(0,0,0,0.6);color:#fff;padding:8px;font-size:14px;z-index:50;backdrop-filter:blur(6px)}
+@media(max-width:740px){.section,.stats{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -35,7 +83,153 @@
 </header>
 
 <main>
-  <!-- Full calculator UI goes here (Base & Buffs, DPS Inputs, stats, progress bar, etc.) -->
+  <!-- Base & Buffs -->
+  <div class="card">
+    <h2>Base &amp; Buffs</h2>
+    <div class="section">
+      <div class="row">
+        <label>Class</label>
+        <div class="seg" id="classSeg">
+          <button type="button" data-val="Berserker">🪓 Berserker</button>
+          <button type="button" data-val="Paladin">🛡️ Paladin</button>
+          <button type="button" data-val="Ranger">🏹 Ranger</button>
+          <button type="button" data-val="Sorcerer" class="is-active">🔮 Sorcerer</button>
+        </div>
+        <select id="cls" class="hidden"></select>
+      </div>
+
+      <div class="row">
+        <label>Weapon Speed</label>
+        <div class="seg" id="weaponSeg">
+          <button type="button" data-val="Original">Original</button>
+          <button type="button" data-val="Primal">Primal</button>
+          <button type="button" data-val="PVP/Boss" class="is-active">PVP/Boss</button>
+        </div>
+        <select id="weap" class="hidden"></select>
+      </div>
+
+      <div class="row">
+        <label>Characteristic</label>
+        <select id="char">
+          <option value="0">None</option>
+          <option value="7" selected>Heroic (+7%)</option>
+          <option value="10">Swift (+10%)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>Atk SPD Colour</label>
+        <select id="col">
+          <option value="0">Normal (+0%)</option>
+          <option value="10">Blue (+10%)</option>
+          <option value="20">Orange (+20%)</option>
+          <option value="30" selected>Purple (+30%)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>Guild Buff</label>
+        <div class="pct"><input id="guild" type="number" inputmode="decimal" step="0.1" value="5"><span class="suffix">%</span></div>
+      </div>
+
+      <div class="row">
+        <label>Secret Tech</label>
+        <div class="pct"><input id="secret" type="number" inputmode="decimal" step="0.1" value="10"><span class="suffix">%</span></div>
+      </div>
+
+      <div class="row">
+        <label>Equipment ATK SPD</label>
+        <div class="pct"><input id="equip" type="number" inputmode="decimal" step="0.1" value="0"><span class="suffix">%</span></div>
+      </div>
+
+      <div class="row">
+        <label>Rune ATK SPD</label>
+        <div class="pct"><input id="rune" type="number" inputmode="decimal" step="0.1" value="0"><span class="suffix">%</span></div>
+      </div>
+
+      <input id="target" type="hidden" value="0.25">
+
+      <div class="row">
+        <label>Quicken</label>
+        <select id="quicken">
+          <option value="0">None</option>
+          <option value="1">Lv.1 (+1%)</option>
+          <option value="2">Lv.2 (+2%)</option>
+          <option value="3">Lv.3 (+3%)</option>
+          <option value="4">Lv.4 (+4%)</option>
+          <option value="5">Lv.5 (+5%)</option>
+        </select>
+      </div>
+
+      <div class="row" id="furyRow">
+        <label>Fury Lv.10</label>
+        <div class="seg">
+          <button type="button" id="furyBtn" data-on="0">Off</button>
+        </div>
+        <input id="fury" type="checkbox" class="hidden">
+      </div>
+    </div>
+
+    <div style="margin-top:12px" class="section">
+      <div class="row" style="grid-column:1 / -1">
+        <div class="bar" id="pbar"><div id="progressFill"></div></div>
+        <div class="muted" id="progressText">Progress: —</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <label>Required ATK SPD</label>
+        <div class="value pct"><input id="requiredBox" type="number" readonly><span class="suffix">%</span></div>
+      </div>
+      <div class="stat">
+        <label>Final ATK SPD</label>
+        <div class="value"><input id="finalBox" type="number" readonly></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DPS -->
+  <div class="card">
+    <h2>DPS Inputs</h2>
+    <div class="section">
+      <div class="row">
+        <label>Weapon ATK (base)</label>
+        <input id="atk" type="number" inputmode="decimal" step="1" value="1000">
+      </div>
+      <div class="row">
+        <label>ATK %</label>
+        <div class="pct"><input id="atkPct" type="number" inputmode="decimal" step="0.1" value="0"><span class="suffix">%</span></div>
+      </div>
+      <div class="row">
+        <label>Racial %</label>
+        <div class="pct"><input id="racialPct" type="number" inputmode="decimal" step="0.1" value="0"><span class="suffix">%</span></div>
+      </div>
+      <div class="row">
+        <label>Crit Chance</label>
+        <div class="pct"><input id="crit" type="number" inputmode="decimal" step="0.1" value="30"><span class="suffix">%</span></div>
+      </div>
+      <div class="row">
+        <label>Crit DMG (extra)</label>
+        <div class="pct"><input id="critDmg" type="number" inputmode="decimal" step="1" value="100"><span class="suffix">%</span></div>
+      </div>
+      <div class="row">
+        <label>Other DMG Multiplier</label>
+        <input id="otherMult" type="number" inputmode="decimal" step="0.01" value="1.00">
+      </div>
+    </div>
+
+    <div class="stats" style="margin-top:10px">
+      <div class="stat">
+        <label>Effective Hit Damage</label>
+        <div class="value"><input id="dmgOut" type="number" readonly></div>
+      </div>
+      <div class="stat">
+        <label>DPS</label>
+        <div class="value"><input id="dpsOut" type="number" readonly></div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <!-- Sticky Footer -->
@@ -44,7 +238,151 @@
 </footer>
 
 <script>
-// Full JavaScript logic goes here (class/weapon selection, fury toggle, quicken, recalc, DPS math)
+// Data
+const base = {
+  "Original": {"Berserker":2.0, "Paladin":2.4, "Ranger":1.8, "Sorcerer":2.2},
+  "Primal":   {"Berserker":2.0, "Paladin":2.4, "Ranger":1.8, "Sorcerer":2.2},
+  "PVP/Boss": {"Berserker":2.2, "Paladin":2.5, "Ranger":2.0, "Sorcerer":2.3}
+};
+const TARGET_FINAL = 0.25;
+
+// Elements
+const els = (ids => ids.reduce((o,id)=> (o[id]=document.getElementById(id),o),{}))(
+  ["cls","weap","char","col","guild","secret","equip","rune","quicken","fury",
+   "progressFill","progressText","requiredBox","finalBox","furyBtn","pbar",
+   "atk","atkPct","racialPct","crit","critDmg","otherMult","dmgOut","dpsOut"]
+);
+
+// Build hidden class & weapon selects so segmented buttons can set them
+["Berserker","Paladin","Ranger","Sorcerer"].forEach(v => {
+  const opt = document.createElement('option'); opt.value=v; opt.text=v; els.cls.appendChild(opt);
+});
+["Original","Primal","PVP/Boss"].forEach(v => {
+  const opt = document.createElement('option'); opt.value=v; opt.text=v; els.weap.appendChild(opt);
+});
+els.cls.value = "Sorcerer";
+els.weap.value = "PVP/Boss";
+
+// Segmented controls behavior
+function wireSeg(segId, selectEl){
+  const seg = document.getElementById(segId);
+  seg.addEventListener('click', e => {
+    const btn = e.target.closest('button'); if(!btn) return;
+    seg.querySelectorAll('button').forEach(b => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    selectEl.value = btn.dataset.val;
+    recalc();
+  });
+}
+wireSeg('classSeg', els.cls);
+wireSeg('weaponSeg', els.weap);
+
+// Fury toggle button
+els.furyBtn.addEventListener('click', () => {
+  const on = els.furyBtn.getAttribute('data-on') === '1';
+  els.furyBtn.setAttribute('data-on', on ? '0' : '1');
+  els.fury.checked = !on;
+  els.furyBtn.textContent = els.fury.checked ? 'On' : 'Off';
+  els.furyBtn.classList.toggle('is-active', els.fury.checked);
+  recalc();
+});
+
+const furyRow = document.getElementById("furyRow");
+
+// Helpers
+function clamp(x, min, max){ return Math.max(min, Math.min(max, x)); }
+function pctInput(id){ return (parseFloat(els[id].value || 0) / 100); }
+function pctSelect(id){ return (parseFloat(els[id].value || 0) / 100); }
+
+function recalc(){
+  const cls = els.cls.value;
+  const weap = els.weap.value;
+  const baseSpd = base[weap][cls];
+
+  // Fury availability
+  if (cls === "Berserker") {
+    furyRow.classList.remove('hidden');
+  } else {
+    furyRow.classList.add('hidden');
+    els.fury.checked = false;
+    els.furyBtn.setAttribute('data-on','0');
+    els.furyBtn.classList.remove('is-active');
+    els.furyBtn.textContent = 'Off';
+  }
+
+  const char = pctSelect("char");
+  const color = pctSelect("col");
+  const guild = pctInput("guild");
+  const secret = pctInput("secret");
+  const equip = pctInput("equip");
+  const rune = pctInput("rune");
+  const quicken = (parseFloat(els.quicken.value || 0) / 100); // level 0..5 → 0..0.05
+  const furyFactor = (els.fury.checked && cls === "Berserker") ? 0.25 : 1.0;
+
+  const totalBonuses = char + color + guild + secret + equip + rune;
+
+  // Required total %, remaining, and progress
+  const denom = Math.max(baseSpd * (1 - quicken) * furyFactor, 1e-9);
+  const requiredTotal = 1 - (TARGET_FINAL / denom);
+  const remaining = Math.max(0, requiredTotal - totalBonuses);
+  const progress = clamp(requiredTotal <= 0 ? 1 : totalBonuses / requiredTotal, 0, 1);
+
+  // Final speed (cap)
+  const finalRaw = baseSpd * (1 - totalBonuses) * (1 - quicken) * furyFactor;
+  const finalSpd = Math.max(finalRaw, TARGET_FINAL);
+
+  // Progress visuals
+  els.progressFill.style.width = (progress * 100).toFixed(1) + '%';
+  els.pbar.classList.remove('good','warn');
+  if(progress >= 1){ els.pbar.classList.add('good'); }
+  else if(progress >= 0.9){ els.pbar.classList.add('warn'); }
+  els.progressText.textContent = `Progress: ${(progress*100).toFixed(1)}% of required covered`;
+
+  // Outputs
+  els.requiredBox.value = (remaining * 100).toFixed(2);
+  els.finalBox.value = finalSpd.toFixed(2);
+
+  // DPS
+  const atk = parseFloat(els.atk.value || 0);
+  const atkPct = pctInput("atkPct");
+  const racial = pctInput("racialPct");
+  const crit = clamp(pctInput("crit"),0,1);
+  const critDmg = pctInput("critDmg");
+  const other = parseFloat(els.otherMult.value || 1);
+
+  const baseDamage = atk * (1+atkPct) * (1+racial) * other;
+  const expectedCrit = (1-crit) + crit * (1 + critDmg);
+  const effDamage = baseDamage * expectedCrit;
+  const dps = effDamage / Math.max(finalSpd, 1e-9);
+
+  els.dmgOut.value = effDamage.toFixed(2);
+  els.dpsOut.value = dps.toFixed(2);
+}
+
+// Typing UX: select/clear zeros on focus; restore 0 if blank
+function isEditableNumber(el){
+  return el.tagName === 'INPUT' && el.type === 'number' && !el.readOnly;
+}
+document.addEventListener('focusin', e => {
+  const el = e.target;
+  if (!isEditableNumber(el)) return;
+  el.select();
+  const v = (el.value || '').trim();
+  if (v === '' || Number(v) === 0) el.value = '';
+});
+document.addEventListener('focusout', e => {
+  const el = e.target;
+  if (!isEditableNumber(el)) return;
+  if ((el.value || '').trim() === '') { el.value = '0'; recalc(); }
+});
+
+// Recalc on any change
+["input","change","click"].forEach(evt => document.addEventListener(evt, e => {
+  if (e.target.matches('input, select')) recalc();
+}));
+
+// Initial
+recalc();
 </script>
 </body>
 </html>
